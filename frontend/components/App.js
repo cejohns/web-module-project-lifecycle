@@ -110,7 +110,7 @@ class App extends Component {
     return (
       <div>
         <h1>Todo App</h1>
-        <Form onInputChange={this.handleInputChange} onAddTodo={this.addTodo} onClearCompleted={this.clearCompleted} />
+        <Form onInputChange={this.handleInputChange} onAddTodo={this.addTodo} onClearCompleted={this.clearCompleted} inputValue={inputValue} />
         <TodoList
           todos={filteredTodos}
           onToggleCompleted={filterCompleted ? this.handleToggleCompleted : this.toggleCompleted}
