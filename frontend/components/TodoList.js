@@ -1,21 +1,22 @@
 import React from 'react';
 import Todo from './Todo';
 
-class TodoList extends React.Component {
+export default class TodoList extends React.Component {
   render() {
-    const { todos, onToggleCompleted, toggleCompleted } = this.props;
+    const { todos } = this.props;
+
+    // Check if todos is an array
+    if (!Array.isArray(todos)) {
+      // Handle the error or return null or some placeholder
+      return <div>Todo list is not available at the moment.</div>;
+    }
 
     return (
       <div>
-        <h2>Todo List</h2>
-        <ul>
-          {todos.map((todo) => (
-            <Todo key={todo.id} todo={todo} onToggleCompleted={onToggleCompleted || toggleCompleted} />
-          ))}
-        </ul>
+        {todos.map(todo => (
+          <Todo key={todo.id} todo={todo} toggleCompleted={this.props.toggleCompleted} />
+        ))}
       </div>
     );
   }
 }
-
-export default TodoList;

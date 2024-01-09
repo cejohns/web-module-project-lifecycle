@@ -1,123 +1,114 @@
-import React, { Component } from 'react';
+import React from 'react';
 import TodoList from './TodoList';
 import Form from './Form';
 
-const URL = 'http://localhost:9000/api/todos';
-
-class App extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      todos: [],
-      filterCompleted: false,
-      inputValue: '',
-      showCompleted: true,
-    };
-  }
+export default class App extends React.Component {
+  state = {
+    todos: [
+      { id: 1528817077286, name: 'Organize Garage',  completed: false },
+      { id: 1528817084358, name: 'Bake Cookies',  completed: false }
+    ],
+    inputText: ''
+  };
 
   componentDidMount() {
-    this.fetchTodos();
-  }
-
-  fetchTodos = () => {
-    fetch(URL)
-      .then((response) => {
+    fetch('http://localhost:9000/api/todos')
+      .then(response => {
         if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
+          throw new Error(`Network response was not ok, status: ${response.status}`);
         }
         return response.json();
       })
-      .then((result) => {
-        console.log('Received data:', result);
-        const data = result.data || []; 
-        if (Array.isArray(data)) {
-          this.setState({ todos: data });
+      .then(result => {
+        if (result && Array.isArray(result.data)) {
+          this.setState({ todos: result.data });
         } else {
-          console.error('Invalid data format received from the server:', data);
-          throw new Error('Invalid data format received from the server');
+          throw new Error('Data is not an array');
         }
       })
-      .catch((error) => console.error('Error fetching todos:', error));
-  };
+      .catch(error => console.error('Error:', error));
+  }
 
-  handleInputChange = (event) => {
-    this.setState({ inputValue: event.target.value });
+  toggleCompleted = (id) => {
+    fetch(`http://localhost:9000/api/todos/${id}`, {
+      method: 'PATCH'
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Network response was not ok, status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(result => {
+      if (result && result.data && result.data.id) {
+        this.setState(prevState => ({
+          todos: prevState.todos.map(todo => 
+            todo.id === id ? result.data : todo
+          )
+        }));
+      } else {
+        throw new Error('Invalid data structure received from PATCH request');
+      }
+    })
+    .catch(error => console.error('Error:', error));
   };
+  
 
-  handleAddTodo = () => {
-    const { inputValue, todos } = this.state;
-    if (inputValue.trim() !== '') {
-      const newTodo = {
-        id: todos.length + 1,
-        task: inputValue,
-        completed: false,
-      };
-      this.setState({
-        todos: [...todos, newTodo],
-        inputValue: '',
-      });
-    }
-  };
-
-  handleToggleCompleted = (id) => {
-    const updatedTodos = this.state.todos.map((todo) =>
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    );
-    this.setState({ todos: updatedTodos });
-  };
-
-  handleClearCompleted = () => {
-    const filteredTodos = this.state.todos.filter((todo) => !todo.completed);
-    this.setState({ todos: filteredTodos });
-  };
-
-  addTodo = (name, completed = false) => {
-    fetch(URL, {
+  addTodo = (e) => {
+    e.preventDefault();
+    const newTodo = {
+      name: this.state.inputText,
+      completed: false // default value
+    };
+  
+    fetch('http://localhost:9000/api/todos', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ name, completed }),
+      body: JSON.stringify(newTodo),
     })
-      .then((response) => response.json())
-      .then((data) => this.setState((prevState) => ({ todos: [...prevState.todos, data] })))
-      .catch((error) => console.error('Error adding todo:', error));
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Network response was not ok, status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(result => {
+      // Make sure result.data contains the new todo object
+      if (result && result.data && result.data.id) {
+        this.setState(prevState => ({
+          todos: [...prevState.todos, result.data],
+          inputText: ''
+        }));
+      } else {
+        throw new Error('Invalid data structure received from POST request');
+      }
+    })
+    .catch(error => console.error('Error:', error));
   };
 
-  toggleCompleted = (id) => {
-    fetch(`${URL}/${id}`, {
-      method: 'PATCH',
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        this.setState((prevState) => ({
-          todos: prevState.todos.map((todo) =>
-            todo.id === data.id ? { ...todo, completed: !todo.completed } : todo
-          ),
-        }));
-      })
-      .catch((error) => console.error('Error toggling completed:', error));
+  handleInputChange = (e) => {
+    this.setState({ inputText: e.target.value });
+  };
+
+  clearCompleted = () => {
+    this.setState({
+      todos: this.state.todos.filter(todo => !todo.completed)
+    });
   };
 
   render() {
-    const { todos, filterCompleted, inputValue, showCompleted } = this.state;
-    const filteredTodos = filterCompleted
-      ? todos.filter((todo) => todo.completed)
-      : showCompleted
-      ? todos
-      : todos.filter((todo) => !todo.completed);
-
     return (
       <div>
-        <h1>Todo App</h1>
-        <Form onInputChange={this.handleInputChange} onAddTodo={this.addTodo} onClearCompleted={this.clearCompleted} inputValue={inputValue} />
-        <TodoList
-          todos={filteredTodos}
-          onToggleCompleted={filterCompleted ? this.handleToggleCompleted : this.toggleCompleted}
+        <TodoList todos={this.state.todos} toggleCompleted={this.toggleCompleted} />
+        <Form 
+          addTodo={this.addTodo} 
+          inputText={this.state.inputText} 
+          handleInputChange={this.handleInputChange} 
+          clearCompleted={this.clearCompleted} 
         />
       </div>
     );
   }
 }
-
-export default App;
